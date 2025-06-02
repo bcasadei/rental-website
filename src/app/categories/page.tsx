@@ -1,33 +1,19 @@
-// app/page.tsx
-import Image from 'next/image';
-import Link from 'next/link';
-
-import { useState } from 'react';
-
-export default function Home() {
+export default function Categories() {
   return (
     <main className='min-h-screen bg-gradient-to-b from-sky-200 to-yellow-100  font-sans'>
-      <section className='text-center py-20 px-6 bg-white bg-[url("/images/hero-desktop.jpg")] bg-cover bg-center text-white'>
-        <h2 className='text-5xl font-extrabold text-white text-shadow-lg mb-4'>
-          Make a Splash This Summer!
-        </h2>
-        <p className='text-lg text-white mb-8'>
-          Rent premium water guns for parties, events, or just plain fun.
-        </p>
-        <div className='space-x-4'>
-          <button className='bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-full shadow-md hover:cursor-pointer transition'>
-            View Rentals
-          </button>
-        </div>
-      </section>
-
-      {/* Featured Rentals */}
+      {/* Categories */}
       <section className='py-16 px-6 bg-sky-70'>
         <h3 className='text-3xl font-bold text-center text-sky-600 mb-10'>
-          Popular Water Blasters
+          Rental Categories
         </h3>
         <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
-          {['Blaster 1', 'Blaster 2', 'Blaster 3'].map((item, index) => (
+          {[
+            'Pistol Blasters',
+            'Rifle Blaster',
+            'Shotgun Blasters',
+            'Machine Gun Blasters',
+            'Bazooka Blasters',
+          ].map((item, index) => (
             <div
               key={index}
               className='bg-white p-6 rounded-lg shadow hover:shadow-lg transition'>
