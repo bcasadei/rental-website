@@ -9,13 +9,16 @@ export default function NavBar() {
   return (
     <header className='flex justify-between items-center p-6 bg-sky-600 shadow-md relative'>
       <div className='relative w-40 h-24 md:w-44 md:h-32 lg:w-52 lg:h-36'>
-        <Image
-          src='/images/water_blaster_rentals_logo_300px.png' // Path relative to the public folder
-          alt='Water Blaster Rentals Logo'
-          fill
-          className='h-10 w-auto object-contain'
-          sizes='(max-width: 768px) 120px, 200px'
-        />
+        <Link href='/' className='block'>
+          {/* Logo Image */}
+          <Image
+            src='/images/water_blaster_rentals_logo_300px.png' // Path relative to the public folder
+            alt='Water Blaster Rentals Logo'
+            fill
+            className='h-10 w-auto object-contain'
+            sizes='(max-width: 768px) 120px, 200px'
+          />
+        </Link>
       </div>
       {/* <h1 className='text-3xl font-bold text-white'>Water Blaster Rentals</h1> */}
       {/* Hamburger Icon */}
@@ -39,7 +42,7 @@ export default function NavBar() {
       {/* Desktop Nav */}
       <nav className='hidden md:flex space-x-6 text-white font-medium'>
         <Link href='/'>Home</Link>
-        <Link href='/categories'>Rentals</Link>
+        <Link href='/products'>Rentals</Link>
         <Link href='/about'>How It Works</Link>
         {/* <Link href='#'>FAQs</Link> */}
         <Link href='/contact'>Contact</Link>
@@ -57,7 +60,7 @@ export default function NavBar() {
         <Link href='/' onClick={() => setMenuOpen(false)}>
           Home
         </Link>
-        <Link href='/categories' onClick={() => setMenuOpen(false)}>
+        <Link href='/products' onClick={() => setMenuOpen(false)}>
           Rentals
         </Link>
         <Link href='/about' onClick={() => setMenuOpen(false)}>

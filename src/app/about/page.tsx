@@ -5,7 +5,7 @@ export default function About() {
         <h3 className='text-3xl font-bold text-center text-sky-600 mb-10'>
           How it Works
         </h3>
-        <div className='grid md:grid-cols-3 gap-8 max-w-6xl mx-auto'>
+        <div className='max-w-3xl mx-auto'>
           <ol className='list-decimal list-inside'>
             <li className='text-xl font-semibold mb-5'>
               Pick Your Blasters

@@ -1,0 +1,6 @@
+id,title,description,category,image_url,price_per_day,created_at
+1,Super Soaker XP100,"High-capacity water blaster with long-range power. Great for all ages.","rifle",/images/supersoaker_xp100.jpg,10.00,2025-06-01
+2,AquaZooka Double Barrel,"Dual-barrel action for double the soaking fun. Lightweight and easy to use.","shotgun",/images/aquazooka_double.jpg,8.00,2025-06-01
+3,HydroBlitz 3000,"Rapid-fire water blaster with ergonomic grip and large tank.","machine gun",/images/hydroblitz_3000.jpg,12.00,2025-06-01
+4,Mini Splash Blaster,"Compact and easy for kids. Safe and fun for younger children.","pistol",/images/mini_splash_blaster.jpg,5.00,2025-06-01
+5,Tidal Wave Cannon,"Massive water output for epic battles. Best for outdoor events.","bazooka",/images/tidal_wave_cannon.jpg,15.00,2025-06-01
