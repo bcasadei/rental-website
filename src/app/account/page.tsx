@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function AccountPage() {
+function AccountPage() {
   const [profile, setProfile] = useState({
     full_name: '',
     phone: '',
@@ -230,6 +231,14 @@ export default function AccountPage() {
         )}
       </form>
     </main>
+  );
+}
+
+export default function AccountPageProtected() {
+  return (
+    <ProtectedRoute>
+      <AccountPage />
+    </ProtectedRoute>
   );
 }
 // This code defines a simple account page where users can view and update their profile information.
