@@ -1,10 +1,34 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuthModal } from '@/context/AuthModalContext';
 
 export default function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const { openModal } = useAuthModal();
+
+  useEffect(() => {
+    // Get current user on mount
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    // Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setMenuOpen(false);
+  };
 
   return (
     <header className='flex justify-between items-center p-6 bg-sky-600 shadow-md relative'>
@@ -47,9 +71,20 @@ export default function NavBar() {
         {/* <Link href='#'>FAQs</Link> */}
         <Link href='/contact'>Contact</Link>
       </nav>
-      <button className='hidden md:block bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'>
-        Book Now
-      </button>
+      {/* Auth Button Desktop */}
+      {user ? (
+        <button
+          onClick={handleLogout}
+          className='hidden md:block bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'>
+          Logout
+        </button>
+      ) : (
+        <button
+          onClick={() => openModal(false)}
+          className='hidden md:block bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'>
+          Sign Up
+        </button>
+      )}
       {/* Mobile Nav */}
       <nav
         className={`absolute top-full left-0 w-full bg-sky-300 flex flex-col items-center space-y-4 py-6 shadow-md md:hidden z-10 transition-all duration-300 ${
@@ -72,11 +107,19 @@ export default function NavBar() {
         <Link href='/contact' onClick={() => setMenuOpen(false)}>
           Contact
         </Link>
-        <button
-          className='bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'
-          onClick={() => setMenuOpen(false)}>
-          Book Now
-        </button>
+        {user ? (
+          <button
+            className='bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'
+            onClick={handleLogout}>
+            Logout
+          </button>
+        ) : (
+          <button
+            onClick={() => openModal(false)}
+            className='md:block bg-yellow-400 hover:bg-yellow-300 text-white font-bold py-2 px-4 rounded shadow hover:cursor-pointer transition'>
+            Sign Up
+          </button>
+        )}
       </nav>
     </header>
   );

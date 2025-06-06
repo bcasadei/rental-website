@@ -3,6 +3,8 @@ import './globals.css';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import { CartProvider } from '@/context/CartContext';
+import { AuthModalProvider } from '@/context/AuthModalContext';
+import AuthModal from '@/components/AuthModal';
 
 // const geistSans = Geist({
 //   variable: '--font-geist-sans',
@@ -27,11 +29,14 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className='flex flex-col min-h-screen'>
-        <CartProvider>
-          <NavBar />
-          <main className='flex-1'>{children}</main>
-          <Footer />
-        </CartProvider>
+        <AuthModalProvider>
+          <CartProvider>
+            <AuthModal />
+            <NavBar />
+            <main className='flex-1'>{children}</main>
+            <Footer />
+          </CartProvider>
+        </AuthModalProvider>
       </body>
     </html>
   );
