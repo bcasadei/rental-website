@@ -1,6 +1,9 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useCart } from '@/context/CartContext';
+import { supabase } from '@/lib/supabaseClient';
 import Image from 'next/image';
+// import { useAuthModal } from '@/context/AuthModalContext'; // No longer needed
 
 function getDays(start: string, end: string) {
   return Math.max(
@@ -16,10 +19,50 @@ function getDays(start: string, end: string) {
 export default function CartPage() {
   const { cart, removeFromCart, clearCart } = useCart();
 
+  // Profile fields for booking (no longer used here, handled in checkout)
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [booking, setBooking] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Fetch user profile if logged in (no longer required here, handled in checkout)
+  // useEffect(() => {
+  //   const fetchProfile = async () => {
+  //     setLoadingProfile(true);
+  //     setError(null);
+  //     const {
+  //       data: { user },
+  //       error: userError,
+  //     } = await supabase.auth.getUser();
+  //     if (userError || !user) {
+  //       setLoadingProfile(false);
+  //       return;
+  //     }
+  //     const { data, error: profileError } = await supabase
+  //       .from('profiles')
+  //       .select('full_name, phone')
+  //       .eq('user_id', user.id)
+  //       .single();
+  //     if (profileError) {
+  //       setError('Could not load profile.');
+  //     } else if (data) {
+  //       setFullName(data.full_name || '');
+  //       setPhone(data.phone || '');
+  //     }
+  //     setLoadingProfile(false);
+  //   };
+  //   fetchProfile();
+  // }, []);
+
   const total = cart.reduce((sum, item) => {
     const days = getDays(item.startDate, item.endDate);
     return sum + item.price_per_day * item.quantity * days;
   }, 0);
+
+  // Book Now handler (no longer used, handled in checkout)
+  // const handleBookNow = async (e: React.FormEvent) => { ... }
 
   return (
     <main className='min-h-screen bg-gradient-to-b from-sky-200 to-yellow-100 font-sans py-12'>
@@ -30,7 +73,8 @@ export default function CartPage() {
         {cart.length === 0 ? (
           <div className='text-center text-gray-500'>Your cart is empty.</div>
         ) : (
-          <div className='space-y-8'>
+          <>
+            {/* Cart items rendering */}
             {cart.map((item) => {
               const days = getDays(item.startDate, item.endDate);
               const itemTotal = item.price_per_day * item.quantity * days;
@@ -67,6 +111,7 @@ export default function CartPage() {
                     </div>
                   </div>
                   <button
+                    type='button'
                     className='ml-4 bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded'
                     onClick={() => removeFromCart(item.id)}>
                     Remove
@@ -80,12 +125,23 @@ export default function CartPage() {
                 ${total.toFixed(2)}
               </span>
             </div>
+            {/* Checkout and Clear Cart buttons */}
+            {/* 
+              On checkout, send the user to the /checkout page where you will collect
+              name, phone, and payment details, and optionally offer login/signup.
+            */}
             <button
-              className='w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-full shadow-md transition mt-6'
+              className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-full shadow-md transition mt-4'
+              onClick={() => (window.location.href = '/checkout')}>
+              Checkout
+            </button>
+            <button
+              type='button'
+              className='w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-full shadow-md transition mt-3'
               onClick={clearCart}>
               Clear Cart
             </button>
-          </div>
+          </>
         )}
       </section>
     </main>

@@ -69,7 +69,6 @@ export default function AuthModal() {
         setFullName('');
         setPassword('');
         setMessage(null);
-        router.push('/');
       }, 1000);
     }
     setLoading(false);

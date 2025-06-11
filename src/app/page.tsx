@@ -35,17 +35,19 @@ export default async function Home() {
               key={item.id}
               className='bg-white p-6 rounded-lg shadow hover:shadow-lg transition'>
               <div className='h-58 bg-gray-100 mb-4 rounded flex items-center justify-center overflow-hidden'>
-                {item.image_url ? (
-                  <Image
-                    src={item.image_url}
-                    alt={item.title}
-                    width={250}
-                    height={192}
-                    className='object-contain w-full h-full'
-                  />
-                ) : (
-                  <span>No Image</span>
-                )}
+                <Link href={`/products/${item.id}`}>
+                  {item.image_url ? (
+                    <Image
+                      src={item.image_url}
+                      alt={item.title}
+                      width={250}
+                      height={192}
+                      className='object-contain w-full h-full'
+                    />
+                  ) : (
+                    <span>No Image</span>
+                  )}
+                </Link>
               </div>
               <h4 className='text-xl font-semibold mb-2'>{item.title}</h4>
               <p className='text-gray-600 mb-4'>{item.description}</p>

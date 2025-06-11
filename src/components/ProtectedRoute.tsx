@@ -3,39 +3,54 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: string[];
+}
+
 export default function ProtectedRoute({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  allowedRoles,
+}: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     let isMounted = true;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user && isMounted) {
-        router.replace('/'); // Redirect to home if not logged in
-      } else if (isMounted) {
-        setAuthenticated(true);
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/');
+        return;
       }
-      setLoading(false);
-    });
+      if (allowedRoles && allowedRoles.length > 0) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        if (!profile || !allowedRoles.includes(profile.role)) {
+          router.push('/');
+          return;
+        }
+      }
+      if (isMounted) setAuthorized(true);
+    };
+    checkAuth();
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [allowedRoles, router]);
 
-  if (loading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <span>Loading...</span>
-      </div>
-    );
+  if (!authorized) {
+    return <div className='text-center py-20'>Checking permissions...</div>;
   }
 
-  return authenticated ? <>{children}</> : null;
+  return <>{children}</>;
 }
-// This component checks if the user is authenticated before rendering its children.
+// This component checks if the user is authenticated and authorized based on their role.
 // If the user is not authenticated, it redirects them to the home page.
+// If the user is authenticated but does not have the required role, it also redirects them to the home page.
