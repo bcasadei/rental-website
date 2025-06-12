@@ -5,7 +5,7 @@ import ProductDetailClient from './ProductDetailClient';
 export default async function ProductDetail(props: {
   params: { productId: string };
 }) {
-  const { productId } = await props.params;
+  const { productId } = props.params;
   const rental = await getRentalById(Number(productId));
   if (!rental) return notFound();
 
