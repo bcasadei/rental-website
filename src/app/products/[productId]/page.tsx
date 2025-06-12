@@ -2,10 +2,12 @@ import { notFound } from 'next/navigation';
 import { getRentalById } from '@/lib/rentals';
 import ProductDetailClient from './ProductDetailClient';
 
-export default async function ProductDetail(props: {
+export default async function ProductDetail({
+  params,
+}: {
   params: { productId: string };
 }) {
-  const { productId } = props.params;
+  const { productId } = params;
   const rental = await getRentalById(Number(productId));
   if (!rental) return notFound();
 
