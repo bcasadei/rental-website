@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
 
 export default function CreateRentalPage() {
   const [title, setTitle] = useState('');
@@ -61,9 +62,26 @@ export default function CreateRentalPage() {
   return (
     <ProtectedRoute allowedRoles={['admin']}>
       <main className='min-h-screen flex items-start justify-center bg-gradient-to-b from-sky-200 to-yellow-100 font-sans'>
-        <div className='max-w-lg mx-auto mt-10 p-8 bg-white rounded-lg shadow-lg w-full'>
-          <h1 className='text-2xl font-bold mb-6 text-sky-700 text-center'>
-            Create Rental
+        <div className='max-w-3xl mx-auto mt-10 p-8 bg-white rounded-lg shadow-lg w-full'>
+          <nav className='mb-8 flex flex-wrap gap-4 justify-center'>
+            <Link href='/admin'>
+              <button className='bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition'>
+                Dashboard
+              </button>
+            </Link>
+            <Link href='/admin/orders'>
+              <button className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition cursor-pointer'>
+                View Orders
+              </button>
+            </Link>
+            <Link href='/admin/edit_products'>
+              <button className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition cursor-pointer'>
+                Edit Products
+              </button>
+            </Link>
+          </nav>
+          <h1 className='text-3xl font-bold mb-6 text-sky-700 text-center'>
+            Create Product
           </h1>
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div>
