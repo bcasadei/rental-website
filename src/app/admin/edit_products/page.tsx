@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabaseClient';
-import Link from 'next/link';
 
 export default function EditProductsPage() {
   const [rentals, setRentals] = useState<any[]>([]);
@@ -34,28 +33,8 @@ export default function EditProductsPage() {
     setForm({});
   }
 
-  async function handleImageUpload(file: File) {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from('rental-images')
-      .upload(fileName, file);
-
-    if (uploadError) {
-      setMessage('Image upload failed: ' + uploadError.message);
-      return null;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('rental-images')
-      .getPublicUrl(fileName);
-
-    return publicUrlData.publicUrl;
-  }
-
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
-    console.log('Updating rental', form);
     const { error } = await supabase
       .from('rentals')
       .update({
@@ -64,13 +43,12 @@ export default function EditProductsPage() {
         category: form.category,
         image_url: form.image_url,
         price_per_day: parseFloat(form.price_per_day),
+        quantity: parseInt(form.quantity, 10),
       })
       .eq('id', editingId);
 
-    if (error) {
-      setMessage('Update failed: ' + error.message);
-      console.log(error);
-    } else {
+    if (error) setMessage('Update failed: ' + error.message);
+    else {
       setMessage('Rental updated!');
       setEditingId(null);
       setForm({});
@@ -92,25 +70,8 @@ export default function EditProductsPage() {
     <ProtectedRoute allowedRoles={['admin']}>
       <main className='min-h-screen flex items-start justify-center bg-gradient-to-b from-sky-200 to-yellow-100 font-sans'>
         <div className='max-w-3xl mx-auto mt-10 p-8 bg-white rounded-lg shadow-lg w-full'>
-          <nav className='mb-8 flex flex-wrap gap-4 justify-center'>
-            <Link href='/admin'>
-              <button className='bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition'>
-                Dashboard
-              </button>
-            </Link>
-            <Link href='/admin/orders'>
-              <button className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition cursor-pointer'>
-                View Orders
-              </button>
-            </Link>
-            <Link href='/admin/create_product'>
-              <button className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded shadow transition cursor-pointer'>
-                Create Product
-              </button>
-            </Link>
-          </nav>
-          <h1 className='text-3xl font-bold mb-6 text-sky-700 text-center'>
-            Edit Products
+          <h1 className='text-2xl font-bold mb-6 text-sky-700 text-center'>
+            Edit Rentals
           </h1>
           {message && (
             <div className='mb-4 text-center text-green-700'>{message}</div>
@@ -143,6 +104,16 @@ export default function EditProductsPage() {
                     />
                     <input
                       className='border rounded px-2 py-1'
+                      value={form.image_url}
+                      onChange={(e) =>
+                        setForm({ ...form, image_url: e.target.value })
+                      }
+                      required
+                      placeholder='Image URL'
+                    />
+                    <input
+                      type='number'
+                      className='border rounded px-2 py-1'
                       value={form.price_per_day}
                       onChange={(e) =>
                         setForm({ ...form, price_per_day: e.target.value })
@@ -151,7 +122,18 @@ export default function EditProductsPage() {
                       min='0'
                       step='0.01'
                       placeholder='Price Per Day'
+                    />
+                    <input
                       type='number'
+                      className='border rounded px-2 py-1'
+                      value={form.quantity}
+                      onChange={(e) =>
+                        setForm({ ...form, quantity: e.target.value })
+                      }
+                      required
+                      min='1'
+                      step='1'
+                      placeholder='Quantity'
                     />
                   </div>
                   <textarea
@@ -164,47 +146,6 @@ export default function EditProductsPage() {
                     required
                     placeholder='Description'
                   />
-                  <div>
-                    <label className='block font-semibold mb-1'>
-                      Image URL or Upload
-                    </label>
-                    <div className='flex items-center gap-2'>
-                      <input
-                        className='border rounded px-2 py-1 flex-1'
-                        value={form.image_url}
-                        onChange={(e) =>
-                          setForm({ ...form, image_url: e.target.value })
-                        }
-                        placeholder='Image URL'
-                      />
-                      <input
-                        type='file'
-                        accept='image/*'
-                        id={`image-upload-${rental.id}`}
-                        style={{ display: 'none' }}
-                        onChange={async (e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const url = await handleImageUpload(
-                              e.target.files[0]
-                            );
-                            if (url) setForm({ ...form, image_url: url });
-                          }
-                        }}
-                      />
-                      <label htmlFor={`image-upload-${rental.id}`}>
-                        <span className='inline-block bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded shadow cursor-pointer transition'>
-                          Upload
-                        </span>
-                      </label>
-                      {form.image_url && (
-                        <img
-                          src={form.image_url}
-                          alt='Preview'
-                          className='h-12 w-12 object-cover rounded'
-                        />
-                      )}
-                    </div>
-                  </div>
                   <div className='flex gap-2 mt-2'>
                     <button
                       type='submit'
@@ -232,6 +173,7 @@ export default function EditProductsPage() {
                     <div className='text-sm'>
                       Price/Day: ${rental.price_per_day}
                     </div>
+                    <div className='text-sm'>Quantity: {rental.quantity}</div>
                     {rental.image_url && (
                       <img
                         src={rental.image_url}
