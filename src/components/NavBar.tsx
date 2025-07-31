@@ -9,18 +9,47 @@ import { useAuthModal } from '@/context/AuthModalContext';
 export default function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<any>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { openModal } = useAuthModal();
   const router = useRouter();
 
+  const fetchUserRole = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching user role:', error);
+      setUserRole(null);
+    } else {
+      setUserRole(data?.role || null);
+    }
+  };
+
   useEffect(() => {
     // Get current user on mount
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        fetchUserRole(data.user.id);
+      } else {
+        setUserRole(null);
+      }
+    });
+
     // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserRole(session.user.id);
+        } else {
+          setUserRole(null);
+        }
       }
     );
 
@@ -46,6 +75,7 @@ export default function NavBar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setUserRole(null);
     setMenuOpen(false);
     router.push('/');
   };
@@ -127,6 +157,15 @@ export default function NavBar() {
                     onClick={() => setProfileMenuOpen(false)}>
                     My Account
                   </Link>
+                  {/* Only show Admin link if user has admin role */}
+                  {userRole === 'admin' && (
+                    <Link
+                      href='/admin'
+                      className='block px-4 py-2 text-gray-700 hover:bg-sky-100'
+                      onClick={() => setProfileMenuOpen(false)}>
+                      Admin
+                    </Link>
+                  )}
                   <button
                     className='block w-full text-left px-4 py-2 text-gray-700 hover:bg-sky-100'
                     onClick={() => {
