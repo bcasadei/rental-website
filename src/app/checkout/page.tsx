@@ -4,6 +4,7 @@ import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { useAuthModal } from '@/context/AuthModalContext';
+import { getStripe } from '@/lib/stripe';
 
 export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
@@ -13,7 +14,6 @@ export default function CheckoutPage() {
   const [state, setState] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [phone, setPhone] = useState('');
-  const [payment, setPayment] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
@@ -47,19 +47,19 @@ export default function CheckoutPage() {
     fetchProfile();
   }, []);
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
+    // Validation (removed payment field check)
     if (
       !fullName.trim() ||
       !streetAddress.trim() ||
       !city.trim() ||
       !state.trim() ||
       !zipCode.trim() ||
-      !phone.trim() ||
-      !payment.trim()
+      !phone.trim()
     ) {
       setError('Please fill out all fields.');
       return;
@@ -79,88 +79,134 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Update profile with address info (store address in profiles only)
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      user_id: userId,
-      full_name: fullName,
-      phone,
-      street_address: streetAddress,
-      city,
-      state,
-      zip: zipCode,
-    });
+    try {
+      // Only update profile, don't create orders yet
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        user_id: user.id,
+        full_name: fullName,
+        phone,
+        street_address: streetAddress,
+        city,
+        state,
+        zip: zipCode,
+      });
 
-    if (profileError) {
-      setError('Failed to update profile: ' + profileError.message);
-      setBooking(false);
-      return;
-    }
+      if (profileError) {
+        setError('Failed to update profile: ' + profileError.message);
+        setBooking(false);
+        return;
+      }
 
-    // Calculate total price
-    const totalPrice = cart.reduce((sum, item) => {
-      const days =
-        Math.max(
+      // Prepare cart for Stripe
+      const stripeItems = cart.map((item) => {
+        const days = Math.max(
           1,
           Math.ceil(
-            (new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) /
+            (new Date(item.endDate).getTime() -
+              new Date(item.startDate).getTime()) /
               (1000 * 60 * 60 * 24) +
               1
           )
         );
-      return sum + item.price_per_day * item.quantity * days;
-    }, 0);
+        return {
+          title: item.title,
+          price: item.price_per_day * days,
+          quantity: item.quantity,
+          days: days,
+          image_url: item.image_url,
+          rental_id: item.id,
+          start_date: item.startDate,
+          end_date: item.endDate,
+        };
+      });
 
-    // 1. Create the order (no address fields)
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert([
-        {
-          user_id: userId,
-          status: 'pending',
-          total_price: totalPrice,
+      const totalPrice = stripeItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      // Create Stripe session
+      // const response = await fetch('/api/create-checkout-session', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     items: stripeItems,
+      //     total: totalPrice,
+      //     user_id: user.id,
+      //     customer_info: {
+      //       full_name: fullName,
+      //       email: user.email, // Get from user object
+      //       phone: phone,
+      //       street_address: streetAddress,
+      //       city: city,
+      //       state: state,
+      //       zip: zipCode,
+      //     },
+      //   }),
+      // });
+
+      // const { sessionId } = await response.json();
+      // const stripe = await getStripe();
+
+      // if (stripe) {
+      //   await stripe.redirectToCheckout({ sessionId });
+      // }
+      // Create Stripe session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ])
-      .select()
-      .single();
+        body: JSON.stringify({
+          items: stripeItems,
+          total: totalPrice,
+          user_id: user.id,
+          customer_info: {
+            full_name: fullName,
+            email: user.email,
+            phone: phone,
+            street_address: streetAddress,
+            city: city,
+            state: state,
+            zip: zipCode,
+          },
+        }),
+      });
 
-    if (orderError || !order) {
-      setError('Order creation failed: ' + (orderError?.message || 'Unknown error'));
+      // Add debugging
+      console.log('Response status:', response.status);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const { sessionId } = responseData;
+      console.log('Session ID:', sessionId);
+
+      if (!sessionId) {
+        throw new Error('No session ID received from Stripe');
+      }
+
+      const stripe = await getStripe();
+
+      if (stripe && sessionId) {
+        await stripe.redirectToCheckout({ sessionId });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Something went wrong. Please try again.');
       setBooking(false);
-      return;
     }
-
-    // 2. Create order_items (or bookings) for each cart item (no address fields)
-    const orderItems = cart.map((item) => ({
-      order_id: order.id,
-      rental_id: item.id,
-      quantity: item.quantity,
-      price: item.price_per_day,
-      start_date: item.startDate,
-      end_date: item.endDate,
-      user_id: userId,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('bookings') // or 'order_items' if you have renamed it
-      .insert(orderItems);
-
-    if (itemsError) {
-      setError('Failed to save order items: ' + itemsError.message);
-      setBooking(false);
-      return;
-    }
-
-    setSuccess('Booking confirmed! Your water blasters will be ready for pickup.');
-    clearCart();
-    setBooking(false);
-    // Optionally redirect after a delay
-    // setTimeout(() => router.push('/'), 3000);
   };
 
   return (
     <main className='min-h-screen flex items-start justify-center bg-gradient-to-b from-sky-200 to-yellow-100 font-sans'>
       <form
-        onSubmit={handleCheckout}
+        onSubmit={handleStripeCheckout}
         className='bg-white p-8 md:mt-6 rounded-lg shadow-lg w-full max-w-md'>
         <h1 className='text-2xl font-bold text-sky-700 mb-6 text-center'>
           Checkout
@@ -186,6 +232,7 @@ export default function CheckoutPage() {
             </div>
           </div>
         )}
+
         <label className='block mb-2 font-medium'>Full Name</label>
         <input
           type='text'
@@ -245,16 +292,46 @@ export default function CheckoutPage() {
           required
           disabled={!user}
         />
-        <label className='block mb-2 font-medium'>Payment Details</label>
-        <input
-          type='text'
-          className='w-full border rounded px-3 py-2 mb-4'
-          value={payment}
-          onChange={(e) => setPayment(e.target.value)}
-          required
-          placeholder='Card number (demo only)'
-          disabled={!user}
-        />
+
+        {/* Cart Summary */}
+        <div className='mb-6 p-4 bg-gray-50 rounded'>
+          <h3 className='font-medium mb-2'>Order Summary</h3>
+          {cart.map((item, index) => {
+            const days = Math.max(
+              1,
+              Math.ceil(
+                (new Date(item.endDate).getTime() -
+                  new Date(item.startDate).getTime()) /
+                  (1000 * 60 * 60 * 24) +
+                  1
+              )
+            );
+            return (
+              <div key={index} className='text-sm mb-1'>
+                {item.title} x{item.quantity} ({days} days) - $
+                {(item.price_per_day * days * item.quantity).toFixed(2)}
+              </div>
+            );
+          })}
+          <div className='font-bold mt-2 pt-2 border-t'>
+            Total: $
+            {cart
+              .reduce((sum, item) => {
+                const days = Math.max(
+                  1,
+                  Math.ceil(
+                    (new Date(item.endDate).getTime() -
+                      new Date(item.startDate).getTime()) /
+                      (1000 * 60 * 60 * 24) +
+                      1
+                  )
+                );
+                return sum + item.price_per_day * item.quantity * days;
+              }, 0)
+              .toFixed(2)}
+          </div>
+        </div>
+
         {error && (
           <div className='text-center text-sm text-red-600 mb-2'>{error}</div>
         )}
@@ -263,21 +340,17 @@ export default function CheckoutPage() {
             {success}
           </div>
         )}
-        {success ? (
-          <button
-            type='button'
-            className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-full shadow-md transition'
-            onClick={() => router.push('/products')}>
-            Continue Shopping
-          </button>
-        ) : (
-          <button
-            type='submit'
-            className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-full shadow-md transition'
-            disabled={booking || !user}>
-            {booking ? 'Processing...' : 'Confirm Booking'}
-          </button>
-        )}
+
+        <button
+          type='submit'
+          className='w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-full shadow-md transition disabled:bg-gray-400'
+          disabled={booking || !user}>
+          {booking ? 'Processing...' : 'Proceed to Payment'}
+        </button>
+
+        <p className='text-xs text-gray-500 mt-2 text-center'>
+          You'll be redirected to Stripe for secure payment processing
+        </p>
       </form>
     </main>
   );
