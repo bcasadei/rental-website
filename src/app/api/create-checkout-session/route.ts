@@ -1,11 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Interfaces for this API route
+interface CheckoutSessionRequest {
+  items: any[];
+  total: number;
+  user_id: string;
+  customer_info: {
+    full_name: string;
+    email: string;
+    phone: string;
+    street_address: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+}
+
+interface CheckoutSessionResponse {
+  sessionId?: string;
+  error?: string;
+  details?: string;
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-07-30.basil',
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<CheckoutSessionResponse>> {
   try {
     const { items, total, user_id, customer_info } = await request.json();
 
@@ -16,9 +40,27 @@ export async function POST(request: NextRequest) {
       customer_info,
     });
 
+    // Debug environment variables
+    console.log('Environment check:');
+    console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+    console.log(
+      'STRIPE_SECRET_KEY length:',
+      process.env.STRIPE_SECRET_KEY?.length
+    );
+    console.log(
+      'STRIPE_SECRET_KEY prefix:',
+      process.env.STRIPE_SECRET_KEY?.substring(0, 8)
+    );
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+
     if (!items || items.length === 0) {
       throw new Error('No items provided');
     }
+
+    console.log('Items to process:', items);
 
     // Create simplified order data for metadata (under 500 chars)
     const orderSummary = items.map((item: any) => ({
@@ -28,6 +70,7 @@ export async function POST(request: NextRequest) {
       price: item.price,
     }));
 
+    console.log('Creating Stripe session...');
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item: any) => ({
